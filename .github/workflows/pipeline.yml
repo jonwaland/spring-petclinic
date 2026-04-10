@@ -1,0 +1,45 @@
+name: DevSecOps Pipeline
+on: [push]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    env:
+      JF_URL: ${{ secrets.JF_URL }}
+      JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+      
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ secrets.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+      - name: Configure JFrog Maven
+        run: |
+          # This configures the project to resolve via JFrog
+          jf mvnc --server-id-deploy local-artifactory --server-id-resolve local-artifactory --repo-resolve-releases maven-remote --repo-resolve-snapshots maven-remote
+
+      - name: Compile and Test
+        run: jf mvn clean install
+
+      - name: Build Docker Image
+        run: docker build -t ${{ secrets.JF_URL_HOST }}/docker-local/spring-petclinic:${{ github.run_number }} .
+
+      - name: Publish to Artifactory
+        run: |
+          # Scan and push the image
+          jf docker push ${{ secrets.JF_URL_HOST }}/docker-local/spring-petclinic:${{ github.run_number }}
+          
+          # Collect build info for Xray
+          jf rt build-publish spring-petclinic ${{ github.run_number }}
