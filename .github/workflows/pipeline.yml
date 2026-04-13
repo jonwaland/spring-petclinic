@@ -24,6 +24,9 @@ jobs:
         env:
           JF_URL: ${{ secrets.JF_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+        with:
+          server-id: local-artifactory
+          username: walaj@waland.net
       
       - name: Configure JFrog Maven
         run: |
