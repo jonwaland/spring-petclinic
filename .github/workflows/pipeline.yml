@@ -31,8 +31,8 @@ jobs:
       - name: Configure JFrog Maven
         run: |
           # This configures the project to resolve via JFrog
-          jf mvn-config --server-id-deploy default \
-            --server-id-resolve default \
+          jf mvn-config --server-id-deploy local-artifactory \
+            --server-id-resolve local-artifactory \
             --repo-resolve-releases maven-remote \
             --repo-resolve-snapshots maven-remote \
             --repo-deploy-releases maven-local \
