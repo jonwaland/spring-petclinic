@@ -36,7 +36,7 @@ jobs:
             --repo-deploy-snapshots maven-local
 
       - name: Compile and Test
-        run: jf mvn clean install --build-name=spring-petclinic --build-number=${{ github.run_number }}
+        run: jf mvn clean install --build-name=spring-petclinic --build-number=${{ github.run_number }} --server-id=local-artifactory
 
       - name: Docker Login
         run: jf docker login
