@@ -57,7 +57,7 @@ jobs:
       - name: Publish Build Info to JFrog
         run : |
           jf rt build-collect-env $BUILD_NAME $BUILD_NUMBER
-          jf docker add-build $IMAGE $BUILD_NAME $BUILD_NUMBER
+          jf docker build-add $IMAGE $BUILD_NAME $BUILD_NUMBER
           jf rt build-publish $BUILD_NAME $BUILD_NUMBER
       
       - name: Scan Image in repository with Xray 
