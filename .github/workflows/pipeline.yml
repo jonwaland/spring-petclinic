@@ -33,6 +33,10 @@ jobs:
       - name: Compile and Test
         run: jf mvn clean install
 
+      - name: Docker Login
+        run: |
+          echo "${{ secrets.JF_ACCESS_TOKEN }}" | docker login ${{ secrets.JF_URL_HOST }} -u walaj@waland.net --password-stdin
+
       - name: Build Docker Image
         run: docker build -t ${{ secrets.JF_URL_HOST }}/docker-local/spring-petclinic:${{ github.run_number }} .
 
