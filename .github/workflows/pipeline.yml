@@ -24,18 +24,16 @@ jobs:
         env:
           JF_URL: ${{ secrets.JF_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
-          
-      - name: Configure JFrog
-        run: |
-          jf c add local-artifactory \
-            --url=${{ secrets.JF_URL }} \
-            --access-token=${{ secrets.JF_ACCESS_TOKEN }} \
-            --interactive=false
       
       - name: Configure JFrog Maven
         run: |
           # This configures the project to resolve via JFrog
-          jf mvnc --server-id-deploy local-artifactory --server-id-resolve local-artifactory --repo-resolve-releases maven-remote --repo-resolve-snapshots maven-remote --repo-deploy-releases maven-local --repo-deploy-snapshots maven-local
+          jf mvn-config --server-id-deploy default \
+            --server-id-resolve default \
+            --repo-resolve-releases maven-remote \
+            --repo-resolve-snapshots maven-remote \
+            --repo-deploy-releases maven-local \
+            --repo-deploy-snapshots maven-local
 
       - name: Compile and Test
         run: jf mvn clean install --build-name=spring-petclinic --build-number=${{ github.run_number }}
