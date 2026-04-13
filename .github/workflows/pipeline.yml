@@ -29,7 +29,7 @@ jobs:
         run: |
           jf c add local-artifactory \
             --url=${{ secrets.JF_URL }} \
-            --access-token=${{ secrets.JF_TOKEN }} \
+            --access-token=${{ secrets.JF_ACCESS_TOKEN }} \
             --interactive=false
       
       - name: Configure JFrog Maven
