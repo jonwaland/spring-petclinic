@@ -7,6 +7,10 @@ jobs:
     env:
       JF_URL: ${{ secrets.JF_URL }}
       JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+      JF_HOST: ${{ secrets.JF_URL_HOST }}
+      IMAGE: ${{ secrets.JF_URL_HOST }}/docker-local/spring-petclinic:${{ github.run_number }}
+      BUILD_NAME: spring-petclinic
+      BUILD_NUMBER: ${{ github.run_number }}
       
     steps:
       - name: Checkout Code
@@ -21,39 +25,48 @@ jobs:
 
       - name: Setup JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
-        env:
-          JF_URL: ${{ secrets.JF_URL }}
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
         with:
           custom-server-id: local-artifactory
           disable-auto-build-publish: true  # We want to do it manually at the end
       
       - name: Configure JFrog Maven
         run: |
-          # This configures the project to resolve via JFrog
+          # note 'maven-central' is a Remote Repo in JFrog pointing to real maven central
           jf mvn-config --server-id-deploy local-artifactory \
             --server-id-resolve local-artifactory \
-            --repo-resolve-releases maven-remote \
-            --repo-resolve-snapshots maven-remote \
+            --repo-resolve-releases maven-central \
+            --repo-resolve-snapshots maven-central \
             --repo-deploy-releases maven-local \
             --repo-deploy-snapshots maven-local
 
       - name: Compile and Test
-        run: jf mvn clean install --build-name=spring-petclinic --build-number=${{ github.run_number }}
+        run: jf mvn clean install -DskipTests=false --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
 
       - name: Docker Login
-        run: jf docker login
-
-      - name: Build Docker Image
-        run: docker build -t ${{ secrets.JF_URL_HOST }}/docker-local/spring-petclinic:${{ github.run_number }} .
-
-      - name: Scan Image with Xray
-        run: jf docker scan ${{ secrets.JF_URL_HOST }}/docker-local/spring-petclinic:${{ github.run_number }}
+        run: jf docker login --server-id local-artifactory
         
+      - name: Build Docker Image
+        run: docker build -t $IMAGE .
+
+      - name: Scan Local Image with Xray
+        run: jf docker scan $IMAGE --format=json > xray-scan-results.json
+      
       - name: Publish to Artifactory
-        run: |
-          # Scan and push the image
-          jf docker push ${{ secrets.JF_URL_HOST }}/docker-local/spring-petclinic:${{ github.run_number }}
+        run: jf docker push $IMAGE --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
           
-          # Collect build info for Xray
-          jf rt build-publish spring-petclinic ${{ github.run_number }}
+      - name: Publish Build Info to JFrog
+        run : |
+          jf rt build-collect-env $BUILD_NAME $BUILD_NUMBER
+          jf rt build-add-docker $BUILD_NAME $BUILD_NUMBER $IMAGE
+          jf rt build-publish $BUILD_NAME $BUILD_NUMBER
+      
+      - name: Scan Image in repository with Xray 
+        run: jf bs $BUILD_NAME $BUILD_NUMBER --format=json > xray-build-scan.json
+          
+      - name: Upload Scan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xray-reports
+          path: |
+            xray-scan-results.json
+            xray-build-scan.json
