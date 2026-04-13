@@ -26,6 +26,7 @@ jobs:
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
         with:
           custom-server-id: local-artifactory
+          disable-auto-build-publish: true  # We want to do it manually at the end
       
       - name: Configure JFrog Maven
         run: |
@@ -46,6 +47,9 @@ jobs:
       - name: Build Docker Image
         run: docker build -t ${{ secrets.JF_URL_HOST }}/docker-local/spring-petclinic:${{ github.run_number }} .
 
+      - name: Scan Image with Xray
+        run: jf docker scan ${{ secrets.JF_URL_HOST }}/docker-local/spring-petclinic:${{ github.run_number }}
+        
       - name: Publish to Artifactory
         run: |
           # Scan and push the image
